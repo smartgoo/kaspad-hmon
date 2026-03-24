@@ -1,8 +1,14 @@
 # kaspad-hmon
 
-Snapshots disk I/O for a given process and all its descendants, for a given duration, at given intervals. Produces a summary report.
+Currently supports monitoring disk on Linux only.
 
-Additional hardware monitoring can be added for CPU/mem. As well as monitors for macOS and Windows.
+Samples disk I/O for a given process, for a given duration, at given intervals. Produces a summary report & disk chart.
+
+A number of ways this can be improved:
+- Support macOS/Windows
+- Support CPU/mem
+- Jupyter notebook
+- Integration to kaspad via RPC to correlate hardware utilization to events (to the extent possible for an external monitor like this)
 
 
 ## Usage
@@ -11,7 +17,7 @@ Additional hardware monitoring can be added for CPU/mem. As well as monitors for
 sudo python3 linux.py <pid> [-m MINUTES] [-i INTERVAL]
 ```
 
-The `<pid>` should be the **parent process** — any child processes will be discovered and tracked automatically via `ps --ppid`.
+The `<pid>` should be the **kaspad process**.
 
 - `-m` — Duration to monitor in minutes (default: 5)
 - `-i` — Sampling interval in seconds (default: 1)
@@ -37,6 +43,6 @@ All metrics come from `/proc/<pid>/io`, which the Linux kernel exposes per-proce
 
 **VFS Write (`wchar`)** — Total bytes the process passed to `write()` syscalls. Includes writes to pipes, sockets, and buffered file writes that may not have hit disk yet. Always >= `write_bytes`.
 
-**Read Syscalls (`syscr`)** — Number of `read()`-family syscall invocations (not bytes). High counts with low byte totals indicate many small reads, which can be a performance concern due to syscall overhead.
+**Read Syscalls (`syscr`)** — Number of `read()`-family syscall invocations (not bytes). High counts with low byte totals indicate many small reads.
 
-**Write Syscalls (`syscw`)** — Number of `write()`-family syscall invocations. Lots of small writes may indicate the process could benefit from buffering.
+**Write Syscalls (`syscw`)** — Number of `write()`-family syscall invocations.
