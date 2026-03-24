@@ -1,11 +1,11 @@
-# iomonitor
+# prochdwmon
 
 Monitor disk I/O per-process via `/proc/<pid>/io`.
 
 ## Usage
 
 ```
-sudo python3 iomonitor.py <pid> [-m MINUTES] [-i INTERVAL]
+sudo python3 prochdwmon.py <pid> [-m MINUTES] [-i INTERVAL]
 ```
 
 - `-m` — Duration to monitor in minutes (default: 5)
