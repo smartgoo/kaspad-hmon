@@ -5,6 +5,11 @@ import sys
 import time
 from datetime import datetime
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Monitor disk I/O via /proc/<pid>/io")
@@ -69,23 +74,6 @@ def get_parent_pid(pid):
             return int(parts[3])
     except (FileNotFoundError, PermissionError, IndexError, ValueError):
         return None
-
-
-def get_process_tree_info(pid):
-    """Build a dict mapping each tracked PID to its role (parent/child), name, and ppid."""
-    tree = {}
-    tree[pid] = {
-        "name": get_process_name(pid),
-        "role": "parent",
-        "ppid": get_parent_pid(pid),
-    }
-    for child in get_descendant_pids(pid):
-        tree[child] = {
-            "name": get_process_name(child),
-            "role": "child",
-            "ppid": get_parent_pid(child),
-        }
-    return tree
 
 
 def collect_samples(pid, interval, total_samples, raw_path):
@@ -267,6 +255,7 @@ Process:          {process_name} (PID {pid}) + children
 Duration:         {duration_min:.1f} minutes ({n} samples @ {interval}s)
 Period:           {samples[0]['time']} - {samples[-1]['time']}
 Total PIDs:       {len(pid_info)}
+Child PIDs:       {sum(1 for info in pid_info.values() if info["role"] == "child")}
 
 Aggregate (All Processes Combined)
 {'=' * 55}
@@ -297,6 +286,56 @@ Process Tree Detail
     print(report)
 
 
+def generate_chart(samples, interval, chart_path):
+    """Generate a JPG chart of key I/O metrics over time."""
+    if not samples:
+        return
+
+    times = [datetime.strptime(s["time"], "%H:%M:%S") for s in samples]
+    read_kb = [s["read_bytes"] / interval / 1024 for s in samples]
+    write_kb = [s["write_bytes"] / interval / 1024 for s in samples]
+    rchar_kb = [s["rchar"] / interval / 1024 for s in samples]
+    wchar_kb = [s["wchar"] / interval / 1024 for s in samples]
+    syscr = [s["syscr"] / interval for s in samples]
+    syscw = [s["syscw"] / interval for s in samples]
+
+    fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+
+    # Disk throughput
+    ax = axes[0]
+    ax.plot(times, read_kb, label="Disk Read", linewidth=1.2)
+    ax.plot(times, write_kb, label="Disk Write", linewidth=1.2)
+    ax.set_ylabel("KB/s")
+    ax.set_title("Disk Throughput (read_bytes / write_bytes)")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # VFS throughput
+    ax = axes[1]
+    ax.plot(times, rchar_kb, label="VFS Read (rchar)", linewidth=1.2)
+    ax.plot(times, wchar_kb, label="VFS Write (wchar)", linewidth=1.2)
+    ax.set_ylabel("KB/s")
+    ax.set_title("VFS Throughput (rchar / wchar)")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # Syscall rates
+    ax = axes[2]
+    ax.plot(times, syscr, label="Read Syscalls", linewidth=1.2)
+    ax.plot(times, syscw, label="Write Syscalls", linewidth=1.2)
+    ax.set_ylabel("ops/s")
+    ax.set_title("Syscall Rate")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+    fig.autofmt_xdate(rotation=45)
+
+    fig.tight_layout()
+    fig.savefig(chart_path, format="jpeg", dpi=150)
+    plt.close(fig)
+    print(f"Chart:    {chart_path}")
+
+
 def monitor_pid(pid, args):
     """Run monitoring and report generation for a single PID."""
     process_name = get_process_name(pid)
@@ -314,6 +353,9 @@ def monitor_pid(pid, args):
 
     samples, per_pid_samples, pid_info = collect_samples(pid, args.interval, total_samples, raw_path)
     generate_summary(samples, per_pid_samples, pid_info, pid, process_name, args.interval, args.minutes, summary_path)
+
+    chart_path = os.path.join(run_dir, "io_metrics.jpg")
+    generate_chart(samples, args.interval, chart_path)
 
     print(f"Raw log:  {raw_path}")
     print(f"Summary:  {summary_path}")

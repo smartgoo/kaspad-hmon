@@ -1,6 +1,6 @@
-# prochdwmon
+# kaspad-hmon
 
-Snapshots disk I/O for a given process, for a given duration, at given intervals. Produces a summary report.
+Snapshots disk I/O for a given process and all its descendants, for a given duration, at given intervals. Produces a summary report.
 
 Additional hardware monitoring can be added for CPU/mem. As well as monitors for macOS and Windows.
 
@@ -8,15 +8,20 @@ Additional hardware monitoring can be added for CPU/mem. As well as monitors for
 ## Usage
 
 ```
-sudo python3 prochdwmon.py <pid> [-m MINUTES] [-i INTERVAL]
+sudo python3 linux.py <pid> [-m MINUTES] [-i INTERVAL]
 ```
+
+The `<pid>` should be the **parent process** — any child processes will be discovered and tracked automatically via `ps --ppid`.
 
 - `-m` — Duration to monitor in minutes (default: 5)
 - `-i` — Sampling interval in seconds (default: 1)
 
+Requires `sudo` to read `/proc/<pid>/io` for other users' processes.
+
 Output is written to `reports/<process>_<pid>_<timestamp>/` containing:
 - `proc_io_raw.log` — Raw sample data
 - `summary` — Plain text summary with aggregate and per-process stats
+- `io_metrics.jpg` — Chart showing disk throughput, VFS throughput, and syscall rates over time
 
 ## Metrics
 
