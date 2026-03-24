@@ -1,6 +1,9 @@
 # prochdwmon
 
-Monitor disk I/O per-process via `/proc/<pid>/io`.
+Snapshots disk I/O for a given process, for a given duration, at given intervals. Produces a summary report.
+
+Additional hardware monitoring can be added for CPU/mem. As well as monitors for macOS and Windows.
+
 
 ## Usage
 
