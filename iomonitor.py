@@ -12,7 +12,6 @@ def parse_args():
     parser.add_argument("pid", type=int, help="PID of the process to monitor")
     parser.add_argument("-m", "--minutes", type=float, default=5, help="Duration to monitor in minutes (default: 5)")
     parser.add_argument("-i", "--interval", type=float, default=1, help="Sampling interval in seconds (default: 1)")
-    parser.add_argument("-o", "--output-dir", default="reports", help="Parent directory for run output (default: reports)")
     return parser.parse_args()
 
 
@@ -299,28 +298,32 @@ Process Tree Detail
     print(report)
 
 
-def main():
-    args = parse_args()
-    check_pid(args.pid)
-
-    process_name = get_process_name(args.pid)
+def monitor_pid(pid, args):
+    """Run monitoring and report generation for a single PID."""
+    process_name = get_process_name(pid)
     total_samples = int((args.minutes * 60) / args.interval)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = os.path.join(args.output_dir, f"{process_name}_{args.pid}_{timestamp}")
+    run_dir = os.path.join("reports", f"{process_name}_{pid}_{timestamp}")
     os.makedirs(run_dir, exist_ok=True)
 
     raw_path = os.path.join(run_dir, "proc_io_raw.log")
     summary_path = os.path.join(run_dir, "summary")
 
-    print(f"Process: {process_name} (PID {args.pid})")
+    print(f"Process: {process_name} (PID {pid})")
     print(f"Run dir: {run_dir}")
     print()
 
-    samples, per_pid_samples, pid_info = collect_samples(args.pid, args.interval, total_samples, raw_path)
-    generate_summary(samples, per_pid_samples, pid_info, args.pid, process_name, args.interval, args.minutes, summary_path)
+    samples, per_pid_samples, pid_info = collect_samples(pid, args.interval, total_samples, raw_path)
+    generate_summary(samples, per_pid_samples, pid_info, pid, process_name, args.interval, args.minutes, summary_path)
 
     print(f"Raw log:  {raw_path}")
     print(f"Summary:  {summary_path}")
+
+
+def main():
+    args = parse_args()
+    check_pid(args.pid)
+    monitor_pid(args.pid, args)
 
 
 if __name__ == "__main__":

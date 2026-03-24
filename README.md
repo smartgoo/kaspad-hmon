@@ -5,12 +5,11 @@ Monitor disk I/O per-process via `/proc/<pid>/io`.
 ## Usage
 
 ```
-sudo python3 iomonitor.py <pid> [-m MINUTES] [-i INTERVAL] [-o OUTPUT_DIR]
+sudo python3 iomonitor.py <pid> [-m MINUTES] [-i INTERVAL]
 ```
 
 - `-m` — Duration to monitor in minutes (default: 5)
 - `-i` — Sampling interval in seconds (default: 1)
-- `-o` — Parent directory for run output (default: `reports`)
 
 Output is written to `reports/<process>_<pid>_<timestamp>/` containing:
 - `proc_io_raw.log` — Raw sample data
